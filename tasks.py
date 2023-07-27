@@ -30,6 +30,8 @@ from PyQt6.QtCore import(
 	QObject
 )
 
+import openai
+
 class Main_window(QMainWindow):
 
 	def __init__(self):
@@ -48,28 +50,24 @@ class Main_window(QMainWindow):
 		self.load_settings()
 	
 	def setup_central_widget(self):
-		layout = QVBoxLayout(self.central_widget)
+		central_layout = QVBoxLayout(self.central_widget)
 
-		input_line = QLineEdit(self)
-		input_line.setPlaceholderText("Input Text")
+		self.input_line = QLineEdit(self.central_widget)
+		self.input_line.setPlaceholderText("Input Text")
 
-		layout.addWidget(input_line)
+		central_layout.addWidget(self.input_line)
 
-		top_hlayout = QHBoxLayout()
-		layout.addLayout(top_hlayout)
+		self.prompt_table = QTableWidget(self.central_widget)
 
-		bot_vlayout = QVBoxLayout()
+		central_layout.addWidget(self.prompt_table)
 
-		top_hlayout.addLayout(bot_vlayout)
-
-		scroll_area = QScrollArea()
-		bot_vlayout.addWidget(scroll_area)
-
-		self.scroll_layout = QVBoxLayout()
-		scroll_area.setLayout(self.scroll_layout)
+		self.prompt_table.setColumnCount(3)
+		self.prompt_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+		self.prompt_table.setHorizontalHeaderLabels(['Enabled', 'Prompt', 'Chain Index'])
+		self.prompt_table.verticalHeader().setVisible(False)
 
 	def load_settings(self):
-		settings = QSettings("chris", "tasks")
+		settings = QSettings("chris", "tasks", self)
 		settings.beginGroup("datum")
 
 		self.api_key = settings.value("api_key")
@@ -85,7 +83,7 @@ class Main_window(QMainWindow):
 			self.add_prompt_to_layout(prompt)
 
 	def store_settings(self):
-		settings = QSettings("chris", "tasks")
+		settings = QSettings("chris", "tasks", self)
 		settings.beginGroup("datum")
 		settings.clear()
 
@@ -93,40 +91,70 @@ class Main_window(QMainWindow):
 		settings.setValue("prompts", self.prompts)
 
 	def setup_toolbar(self):
-		self.add_prompt_action = QAction("Add New Prompt")
-		self.set_api_key_action = QAction("Set API Key")
+		self.run_action = QAction("Run", self.toolbar)
+		self.add_prompt_action = QAction("Add New Prompt", self.toolbar)
+		self.set_api_key_action = QAction("Set API Key", self.toolbar)
 
 		self.add_prompt_action.triggered.connect(self.on_add_prompt_clicked)
+		self.run_action.triggered.connect(self.on_run_clicked)
 		self.set_api_key_action.triggered.connect(self.on_api_key_clicked)
 
-		self.toolbar.addActions([self.add_prompt_action, self.set_api_key_action])
+		self.toolbar.addActions([self.run_action, self.add_prompt_action, self.set_api_key_action])
+
+	def display_error_box(self, error_message):
+		msg_box = QMessageBox(self)
+		msg_box.setText(error_message)
+		msg_box.setDefaultButton(QMessageBox.StandardButton.Ok)
+		msg_box.setIcon(QMessageBox.Icon.Critical)
+		msg_box.exec()
+
+	def on_run_clicked(self):
+
+		if len(self.api_key) == 0:
+			return self.display_error_box("API Key is not given. Please set it before running!")
+
+		openai.api_key = self.api_key
+		input_text = self.input_line.text()
+
+		if len(input_text) == 0:
+			return self.display_error_box("Input text cannot be empty!")
+
+		try:
+			completion = openai.ChatCompletion.create(
+				model="gpt-3.5-turbo", 
+				messages=[{"role": "user", "content": input_text}],
+			)
+		except Exception as e:
+			return self.display_error_box("[ERROR FROM OPENAI] " + str(e))
+
+		print(completion)
 
 	def add_prompt_to_layout(self, prompt):
-		layout = QHBoxLayout()
-		self.scroll_layout.addLayout(layout)
+		self.prompt_table.setRowCount(self.prompt_table.rowCount() + 1)
 
-		label = QLabel(prompt)
-		check_box = QCheckBox()
-		label.setBuddy(check_box)
+		check_box = QCheckBox(self.prompt_table)
+		check_box.stateChanged.connect(self.on_checkbox_clicked)
 
-		layout.addWidget(check_box)
-		layout.addWidget(label)
-		layout.addWidget(QLabel(""))
+		row = self.prompt_table.rowCount() - 1
+		assert row >= 0
 
-		check_box.clicked.connect(self.on_checkbox_clicked)
+		self.prompt_table.setCellWidget(row, 0, check_box)
+		self.prompt_table.setCellWidget(row, 1, QLineEdit(prompt))
+		self.prompt_table.setCellWidget(row, 2, QLabel(""))
 
 	def on_checkbox_clicked(self, check):
-		layout = self.sender().parent().layout()
 
-		for i in range(0, layout.count()):
-			h_layout = layout.itemAt(i)
+		for i in range(0, self.prompt_table.rowCount()):
+			check_box = self.prompt_table.cellWidget(i, 0)
 
-			if h_layout.itemAt(0).widget() == self.sender():
+			if check_box == self.sender():
+				prompt_rank_label = self.prompt_table.cellWidget(i, 2)
+
 				if check:
-					self.chained_prompts.append(h_layout)
+					self.chained_prompts.append(prompt_rank_label)
 				else:
-					self.chained_prompts.remove(h_layout)
-					h_layout.itemAt(2).widget().setText("")
+					self.chained_prompts.remove(prompt_rank_label)
+					prompt_rank_label.setText("")
 
 				self.update_chained_prompts_ranking()
 				break
@@ -134,9 +162,8 @@ class Main_window(QMainWindow):
 	def update_chained_prompts_ranking(self):
 		i = 1
 
-		for layout in self.chained_prompts:
-			counter_label = layout.itemAt(2).widget()
-			counter_label.setText(str(i))
+		for prompt_rank_label in self.chained_prompts:
+			prompt_rank_label.setText(str(i))
 			i = i + 1
 
 	def on_add_prompt_clicked(self):
