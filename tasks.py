@@ -33,6 +33,7 @@ from PyQt6.QtCore import(
 )
 
 import openai
+import sys
 
 def getfakereply(msg):
 	return "GIVING FAKE REPLY HERE"
@@ -245,7 +246,15 @@ class Main_window(QMainWindow):
 		self.api_key = api_key
 
 def main():
-	app = QApplication([])
+	app = QApplication(sys.argv)
+	stylesheet = ""
+
+	with open("stylesheet.qss", 'r') as f:
+		for line in f:
+			stylesheet += line
+
+	app.setStyleSheet(stylesheet)
+
 	window = Main_window()
 	window.show()
 	app.exec()
