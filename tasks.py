@@ -115,10 +115,31 @@ class Main_window(QMainWindow):
 		self.set_api_key_action = QAction("Set API Key", self.toolbar)
 
 		self.add_prompt_action.triggered.connect(self.on_add_prompt_clicked)
+		self.remove_prompt_action.triggered.connect(self.on_remove_prompt_clicked)
 		self.run_action.triggered.connect(self.on_run_clicked)
 		self.set_api_key_action.triggered.connect(self.on_api_key_clicked)
 
-		self.toolbar.addActions([self.run_action, self.add_prompt_action, self.set_api_key_action])
+		self.toolbar.addActions([self.run_action, self.add_prompt_action, self.remove_prompt_action, self.set_api_key_action])
+
+	def on_remove_prompt_clicked(self):
+
+		if self.prompt_table.rowCount() == 0:
+			return self.display_error_box("There isn't any prompt added to remove!")
+
+		(prompt_num, prompt_num_ok) = QInputDialog().getInt(self, "Remove a Prompt", "Prompt number:")
+
+		if not prompt_num_ok:
+			return
+
+		if prompt_num <= 0 or prompt_num > self.prompt_table.rowCount():
+			return self.display_error_box(f"Invalid prompt number: {prompt_num}. Valid numbers: 1 -- {self.prompt_table.rowCount()}")
+
+		check_box = self.prompt_table.cellWidget(prompt_num - 1, 0)
+
+		if check_box.checkState() == Qt.CheckState.Checked:
+			check_box.setCheckState(Qt.CheckState.Unchecked)
+
+		self.prompt_table.removeRow(prompt_num - 1)
 
 	def display_error_box(self, error_message):
 		msg_box = QMessageBox(self)
