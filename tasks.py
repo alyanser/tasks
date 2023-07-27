@@ -34,7 +34,7 @@ from PyQt6.QtCore import(
 import openai
 
 def getfakereply(msg):
-	return "fuck off wanker" + msg
+	return "GIVING FAKE REPLY HERE"
 
 class Main_window(QMainWindow):
 
@@ -68,14 +68,13 @@ class Main_window(QMainWindow):
 		self.prompt_table.setColumnCount(3)
 		self.prompt_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 		self.prompt_table.setHorizontalHeaderLabels(['Enabled', 'Prompt', 'Chain Index'])
-		self.prompt_table.verticalHeader().setVisible(False)
 
 	def load_settings(self):
 		settings = QSettings("chris", "tasks", self)
 		settings.beginGroup("datum")
 
 		self.api_key = settings.value("api_key")
-		self.prompts = settings.value("prompts")
+		prompts = settings.value("prompts")
 
 		input_line_text = settings.value("input_text")
 
@@ -85,10 +84,10 @@ class Main_window(QMainWindow):
 		if not self.api_key:
 			self.api_key = ""
 
-		if not self.prompts:
-			self.prompts = []
+		if not prompts:
+			prompts = []
 
-		for prompt in self.prompts:
+		for prompt in prompts:
 			self.add_prompt_to_layout(prompt)
 
 	def store_settings(self):
@@ -96,8 +95,15 @@ class Main_window(QMainWindow):
 		settings.beginGroup("datum")
 		settings.clear()
 
+		prompts = []
+
+		for i in range(0, self.prompt_table.rowCount()):
+			prompts.append(self.prompt_table.cellWidget(i, 1).text())
+
+		if len(prompts) > 0:
+			settings.setValue("prompts", prompts)
+
 		settings.setValue("api_key", self.api_key)
-		settings.setValue("prompts", self.prompts)
 
 		if len(self.input_line.text()) != 0:
 			settings.setValue("input_text", self.input_line.text())
@@ -105,6 +111,7 @@ class Main_window(QMainWindow):
 	def setup_toolbar(self):
 		self.run_action = QAction("Run", self.toolbar)
 		self.add_prompt_action = QAction("Add New Prompt", self.toolbar)
+		self.remove_prompt_action = QAction("Remove a Prompt", self.toolbar)
 		self.set_api_key_action = QAction("Set API Key", self.toolbar)
 
 		self.add_prompt_action.triggered.connect(self.on_add_prompt_clicked)
@@ -140,14 +147,15 @@ class Main_window(QMainWindow):
 			message = prompt_text_label.text() + '\n\n' + last_reply if last_reply else input_text
 
 			try:
-				reply = openai.ChatCompletion.create(
-					model="gpt-3.5-turbo", 
-					messages=[{"role": "user", "content": message}],
-				)
+				# reply = openai.ChatCompletion.create(
+				# 	model="gpt-3.5-turbo", 
+				# 	messages=[{"role": "user", "content": message}],
+				# )
 
 				reply = getfakereply(message)
+				print(reply)
 
-				last_reply = reply
+				print(message + " -> " + reply)
 			except Exception as e:
 				self.display_error_box("[ERROR FROM OPENAI] " + str(e))
 
@@ -204,7 +212,6 @@ class Main_window(QMainWindow):
 		if not prompt_ok:
 			return
 
-		self.prompts.append(prompt)
 		self.add_prompt_to_layout(prompt)
 
 	def on_api_key_clicked(self):
