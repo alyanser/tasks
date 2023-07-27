@@ -27,7 +27,8 @@ from PyQt6.QtGui import(
 from PyQt6.QtCore import(
 	Qt,
 	QSettings,
-	QObject
+	QObject,
+	QFile
 )
 
 import openai
@@ -106,7 +107,7 @@ class Main_window(QMainWindow):
 		msg_box.setText(error_message)
 		msg_box.setDefaultButton(QMessageBox.StandardButton.Ok)
 		msg_box.setIcon(QMessageBox.Icon.Critical)
-		msg_box.exec()
+		return msg_box.exec()
 
 	def on_run_clicked(self):
 
@@ -119,15 +120,33 @@ class Main_window(QMainWindow):
 		if len(input_text) == 0:
 			return self.display_error_box("Input text cannot be empty!")
 
-		try:
-			completion = openai.ChatCompletion.create(
-				model="gpt-3.5-turbo", 
-				messages=[{"role": "user", "content": input_text}],
-			)
-		except Exception as e:
-			return self.display_error_box("[ERROR FROM OPENAI] " + str(e))
+		if len(self.chained_prompts) == 0:
+			return self.display_error_box("No prompts are added/selected. Atleast one prompt is required!")
 
-		print(completion)
+		last_reply = ""
+
+		for prompt_text_label, _ in self.chained_prompts:
+			message = prompt_text_label.text() + '\n\n' + input_text
+
+			try:
+				reply = openai.ChatCompletion.create(
+					model="gpt-3.5-turbo", 
+					messages=[{"role": "user", "content": message}],
+				)
+
+				last_reply = reply
+			except Exception as e:
+				self.display_error_box("[ERROR FROM OPENAI] " + str(e))
+
+
+		self.log_to_excel(last_reply)
+	
+	def log_to_excel(self, last_reply):
+		pass
+
+	def log_to_file(self, message):
+		file = QFile("output.txt")
+		file.write(message)
 
 	def add_prompt_to_layout(self, prompt):
 		self.prompt_table.setRowCount(self.prompt_table.rowCount() + 1)
@@ -149,11 +168,12 @@ class Main_window(QMainWindow):
 
 			if check_box == self.sender():
 				prompt_rank_label = self.prompt_table.cellWidget(i, 2)
+				prompt_text_label = self.prompt_table.cellWidget(i, 1)
 
 				if check:
-					self.chained_prompts.append(prompt_rank_label)
+					self.chained_prompts.append((prompt_text_label, prompt_rank_label))
 				else:
-					self.chained_prompts.remove(prompt_rank_label)
+					self.chained_prompts.remove((prompt_text_label, prompt_rank_label))
 					prompt_rank_label.setText("")
 
 				self.update_chained_prompts_ranking()
@@ -162,7 +182,7 @@ class Main_window(QMainWindow):
 	def update_chained_prompts_ranking(self):
 		i = 1
 
-		for prompt_rank_label in self.chained_prompts:
+		for _, prompt_rank_label in self.chained_prompts:
 			prompt_rank_label.setText(str(i))
 			i = i + 1
 
