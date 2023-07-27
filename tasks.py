@@ -213,8 +213,9 @@ class Main_window(QMainWindow):
 
 	def log_to_file(self, message, reply):
 		current_datetime = str(datetime.datetime.now().strftime("%Y-%m-%d.%H-%M-%S.%f"))
-		filename = self.output_path + '/' + current_datetime + '.txt'
-		print(filename)
+
+		filename = (self.output_path + '/') if len(self.output_path) > 0 else ""
+		filename += current_datetime + '.txt'
 
 		with open(filename, 'w') as f:
 			f.write(message + '\n\n' + reply)
