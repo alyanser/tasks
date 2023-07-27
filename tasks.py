@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import(
 	QHBoxLayout,
 	QVBoxLayout,
 	QLineEdit,
+	QPlainTextEdit,
 	QHeaderView
 )
 
@@ -56,7 +57,7 @@ class Main_window(QMainWindow):
 	def setup_central_widget(self):
 		central_layout = QVBoxLayout(self.central_widget)
 
-		self.input_line = QLineEdit(self.central_widget)
+		self.input_line = QPlainTextEdit(self.central_widget)
 		self.input_line.setPlaceholderText("Input Text")
 
 		central_layout.addWidget(self.input_line)
@@ -79,7 +80,7 @@ class Main_window(QMainWindow):
 		input_line_text = settings.value("input_text")
 
 		if input_line_text:
-			self.input_line.setText(input_line_text)
+			self.input_line.insertPlainText(input_line_text)
 
 		if not self.api_key:
 			self.api_key = ""
@@ -105,8 +106,8 @@ class Main_window(QMainWindow):
 
 		settings.setValue("api_key", self.api_key)
 
-		if len(self.input_line.text()) != 0:
-			settings.setValue("input_text", self.input_line.text())
+		if len(self.input_line.toPlainText()) != 0:
+			settings.setValue("input_text", self.input_line.toPlainText())
 
 	def setup_toolbar(self):
 		self.run_action = QAction("Run", self.toolbar)
@@ -154,7 +155,7 @@ class Main_window(QMainWindow):
 			return self.display_error_box("API Key is not given. Please set it before running!")
 
 		openai.api_key = self.api_key
-		input_text = self.input_line.text()
+		input_text = self.input_line.toPlainText()
 
 		if len(input_text) == 0:
 			return self.display_error_box("Input text cannot be empty!")
