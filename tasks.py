@@ -33,6 +33,9 @@ from PyQt6.QtCore import(
 
 import openai
 
+def getfakereply(msg):
+	return "fuck off wanker" + msg
+
 class Main_window(QMainWindow):
 
 	def __init__(self):
@@ -74,6 +77,11 @@ class Main_window(QMainWindow):
 		self.api_key = settings.value("api_key")
 		self.prompts = settings.value("prompts")
 
+		input_line_text = settings.value("input_text")
+
+		if input_line_text:
+			self.input_line.setText(input_line_text)
+
 		if not self.api_key:
 			self.api_key = ""
 
@@ -90,6 +98,9 @@ class Main_window(QMainWindow):
 
 		settings.setValue("api_key", self.api_key)
 		settings.setValue("prompts", self.prompts)
+
+		if len(self.input_line.text()) != 0:
+			settings.setValue("input_text", self.input_line.text())
 
 	def setup_toolbar(self):
 		self.run_action = QAction("Run", self.toolbar)
@@ -123,16 +134,18 @@ class Main_window(QMainWindow):
 		if len(self.chained_prompts) == 0:
 			return self.display_error_box("No prompts are added/selected. Atleast one prompt is required!")
 
-		last_reply = ""
+		last_reply = None
 
 		for prompt_text_label, _ in self.chained_prompts:
-			message = prompt_text_label.text() + '\n\n' + input_text
+			message = prompt_text_label.text() + '\n\n' + last_reply if last_reply else input_text
 
 			try:
 				reply = openai.ChatCompletion.create(
 					model="gpt-3.5-turbo", 
 					messages=[{"role": "user", "content": message}],
 				)
+
+				reply = getfakereply(message)
 
 				last_reply = reply
 			except Exception as e:
@@ -145,8 +158,7 @@ class Main_window(QMainWindow):
 		pass
 
 	def log_to_file(self, message):
-		file = QFile("output.txt")
-		file.write(message)
+		pass
 
 	def add_prompt_to_layout(self, prompt):
 		self.prompt_table.setRowCount(self.prompt_table.rowCount() + 1)
