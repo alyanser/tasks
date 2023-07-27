@@ -25,6 +25,7 @@ from PyQt6.QtCore import(
 
 import openai
 import sys
+import datetime
 
 def getfakereply(msg):
 	return "GIVING FAKE REPLY HERE"
@@ -173,7 +174,7 @@ class Main_window(QMainWindow):
 		last_reply = None
 
 		for prompt_text_label, _, _ in self.chained_prompts:
-			message = prompt_text_label.text() + '\n\n' + last_reply if last_reply else input_text
+			message = prompt_text_label.text() + '\n\n' + (last_reply if last_reply else input_text)
 
 			try:
 				# reply = openai.ChatCompletion.create(
@@ -182,19 +183,22 @@ class Main_window(QMainWindow):
 				# )
 
 				reply = getfakereply(message)
-
-				print(message + " -> " + reply)
+				self.log_to_file(message, reply)
+				last_reply = reply
 			except Exception as e:
 				self.display_error_box("[ERROR FROM OPENAI] " + str(e))
 
-
 		self.log_to_excel(last_reply)
 	
-	def log_to_excel(self, last_reply):
+	def log_to_excel(self, message):
 		pass
 
-	def log_to_file(self, message):
-		pass
+	def log_to_file(self, message, reply):
+		current_datetime = str(datetime.datetime.now().strftime("%Y-%m-%d.%H-%M-%S.%f"))
+		filename = current_datetime + '.txt'
+
+		with open(filename, 'w') as f:
+			f.write(message + '\n\n' + reply)
 
 	def add_prompt_to_layout(self, prompt):
 		self.prompt_table.setRowCount(self.prompt_table.rowCount() + 1)
