@@ -83,6 +83,13 @@ class Main_window(QMainWindow):
 		for prompt in prompts:
 			self.add_prompt_to_layout(prompt)
 
+		chained_nums = settings.value("chained_nums")
+
+		if chained_nums and len(chained_nums) > 0:
+			for num in chained_nums:
+				check_box = self.prompt_table.cellWidget(int(num), 0)
+				check_box.setCheckState(Qt.CheckState.Checked)
+
 	def store_settings(self):
 		settings = QSettings("chris", "tasks", self)
 		settings.beginGroup("datum")
@@ -100,6 +107,14 @@ class Main_window(QMainWindow):
 
 		if len(self.input_line.toPlainText()) != 0:
 			settings.setValue("input_text", self.input_line.toPlainText())
+
+		chained_nums = []
+
+		for _, _, chain_num in self.chained_prompts:
+			chained_nums.append(chain_num)
+
+		if len(chained_nums) > 0:
+			settings.setValue("chained_nums", chained_nums)
 
 	def setup_toolbar(self):
 		self.run_action = QAction("Run", self.toolbar)
@@ -157,7 +172,7 @@ class Main_window(QMainWindow):
 
 		last_reply = None
 
-		for prompt_text_label, _ in self.chained_prompts:
+		for prompt_text_label, _, _ in self.chained_prompts:
 			message = prompt_text_label.text() + '\n\n' + last_reply if last_reply else input_text
 
 			try:
@@ -204,9 +219,9 @@ class Main_window(QMainWindow):
 				prompt_text_label = self.prompt_table.cellWidget(i, 1)
 
 				if check:
-					self.chained_prompts.append((prompt_text_label, prompt_rank_label))
+					self.chained_prompts.append((prompt_text_label, prompt_rank_label, i))
 				else:
-					self.chained_prompts.remove((prompt_text_label, prompt_rank_label))
+					self.chained_prompts.remove((prompt_text_label, prompt_rank_label, i))
 					prompt_rank_label.setText("")
 
 				self.update_chained_prompts_ranking()
@@ -215,7 +230,7 @@ class Main_window(QMainWindow):
 	def update_chained_prompts_ranking(self):
 		i = 1
 
-		for _, prompt_rank_label in self.chained_prompts:
+		for _, prompt_rank_label, _ in self.chained_prompts:
 			prompt_rank_label.setText(str(i))
 			i = i + 1
 
