@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import(
 	QCheckBox,
 	QTableWidget,
 	QMessageBox,
+	QFileDialog,
 	QInputDialog,
 	QWidget,
 	QLabel,
@@ -78,6 +79,11 @@ class Main_window(QMainWindow):
 		if not self.api_key:
 			self.api_key = ""
 
+		self.output_path = settings.value("output_path")
+
+		if not self.output_path:
+			self.output_path = ""
+
 		if not prompts:
 			prompts = []
 
@@ -117,18 +123,30 @@ class Main_window(QMainWindow):
 		if len(chained_nums) > 0:
 			settings.setValue("chained_nums", chained_nums)
 
+		settings.setValue("output_path", self.output_path)
+
 	def setup_toolbar(self):
 		self.run_action = QAction("Run", self.toolbar)
 		self.add_prompt_action = QAction("Add New Prompt", self.toolbar)
 		self.remove_prompt_action = QAction("Remove a Prompt", self.toolbar)
 		self.set_api_key_action = QAction("Set API Key", self.toolbar)
+		self.set_output_path_action = QAction("Set Output Path", self.toolbar)
 
 		self.add_prompt_action.triggered.connect(self.on_add_prompt_clicked)
 		self.remove_prompt_action.triggered.connect(self.on_remove_prompt_clicked)
 		self.run_action.triggered.connect(self.on_run_clicked)
 		self.set_api_key_action.triggered.connect(self.on_api_key_clicked)
+		self.set_output_path_action.triggered.connect(self.on_set_output_path_clicked)
 
-		self.toolbar.addActions([self.run_action, self.add_prompt_action, self.remove_prompt_action, self.set_api_key_action])
+		self.toolbar.addActions([self.run_action, self.add_prompt_action, self.remove_prompt_action, self.set_api_key_action, self.set_output_path_action])
+
+	def on_set_output_path_clicked(self):
+		output_path = QFileDialog.getExistingDirectory()
+
+		if len(output_path) == 0:
+			return
+
+		self.output_path = output_path
 
 	def on_remove_prompt_clicked(self):
 
@@ -186,7 +204,7 @@ class Main_window(QMainWindow):
 				self.log_to_file(message, reply)
 				last_reply = reply
 			except Exception as e:
-				self.display_error_box("[ERROR FROM OPENAI] " + str(e))
+				self.display_error_box(str(e))
 
 		self.log_to_excel(last_reply)
 	
@@ -195,7 +213,8 @@ class Main_window(QMainWindow):
 
 	def log_to_file(self, message, reply):
 		current_datetime = str(datetime.datetime.now().strftime("%Y-%m-%d.%H-%M-%S.%f"))
-		filename = current_datetime + '.txt'
+		filename = self.output_path + '/' + current_datetime + '.txt'
+		print(filename)
 
 		with open(filename, 'w') as f:
 			f.write(message + '\n\n' + reply)
