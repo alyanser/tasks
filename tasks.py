@@ -1,20 +1,13 @@
 from PyQt6.QtWidgets import(
 	QApplication,
-	QPushButton,
 	QMainWindow,
-	QRadioButton,
 	QCheckBox,
 	QTableWidget,
-	QTableWidgetItem,
 	QMessageBox,
 	QInputDialog,
-	QScrollArea,
-	QTreeWidgetItem,
-	QTreeWidget,
 	QWidget,
 	QLabel,
 	QToolBar,
-	QHBoxLayout,
 	QVBoxLayout,
 	QLineEdit,
 	QPlainTextEdit,
@@ -27,9 +20,7 @@ from PyQt6.QtGui import(
 
 from PyQt6.QtCore import(
 	Qt,
-	QSettings,
-	QObject,
-	QFile
+	QSettings
 )
 
 import openai
@@ -69,7 +60,7 @@ class Main_window(QMainWindow):
 
 		self.prompt_table.setColumnCount(3)
 		self.prompt_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-		self.prompt_table.setHorizontalHeaderLabels(['Enabled', 'Prompt', 'Chain Index'])
+		self.prompt_table.setHorizontalHeaderLabels(['Enabled', 'Prompts', 'Chain Index'])
 
 	def load_settings(self):
 		settings = QSettings("chris", "tasks", self)
@@ -176,7 +167,6 @@ class Main_window(QMainWindow):
 				# )
 
 				reply = getfakereply(message)
-				print(reply)
 
 				print(message + " -> " + reply)
 			except Exception as e:
@@ -247,13 +237,10 @@ class Main_window(QMainWindow):
 
 def main():
 	app = QApplication(sys.argv)
-	stylesheet = ""
 
 	with open("stylesheet.qss", 'r') as f:
-		for line in f:
-			stylesheet += line
-
-	app.setStyleSheet(stylesheet)
+		stylesheet = f.read()
+		app.setStyleSheet(stylesheet)
 
 	window = Main_window()
 	window.show()
