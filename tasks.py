@@ -27,9 +27,7 @@ from PyQt6.QtCore import(
 import openai
 import sys
 import datetime
-
-def getfakereply(msg):
-	return "GIVING FAKE REPLY HERE"
+from openpyxl import Workbook
 
 class Main_window(QMainWindow):
 
@@ -189,33 +187,42 @@ class Main_window(QMainWindow):
 		if len(self.chained_prompts) == 0:
 			return self.display_error_box("No prompts are added/selected. Atleast one prompt is required!")
 
-		last_reply = None
+		replies = []
 
 		for prompt_text_label, _, _ in self.chained_prompts:
-			message = prompt_text_label.text() + '\n\n' + (last_reply if last_reply else input_text)
+			message = prompt_text_label.text() + '\n\n' + (replies[-1][1] if len(replies) > 0 else input_text)
 
 			try:
-				# reply = openai.ChatCompletion.create(
-				# 	model="gpt-3.5-turbo", 
-				# 	messages=[{"role": "user", "content": message}],
-				# )
+				reply = openai.ChatCompletion.create(
+					model="gpt-3.5-turbo", 
+					messages=[{"role": "user", "content": message}],
+				)
 
-				reply = getfakereply(message)
 				self.log_to_file(message, reply)
-				last_reply = reply
+				replies.append((prompt_text_label.text(), reply))
 			except Exception as e:
 				self.display_error_box(str(e))
 
-		self.log_to_excel(last_reply)
+		self.log_to_excel(replies)
 	
-	def log_to_excel(self, message):
-		pass
+	def generate_output_path(self, extension):
+		current_datetime = str(datetime.datetime.now().strftime("%Y-%m-%d.%H-%M-%S.%f"))
+		filename = (self.output_path + '/') if len(self.output_path) > 0 else ""
+		filename += current_datetime + '.' + extension
+		return filename
+
+	def log_to_excel(self, messages):
+		wb = Workbook()
+		ws = wb.active
+
+		for prompt, message in messages:
+			ws.append([prompt, message])
+
+		filename = self.generate_output_path('xlsx')
+		wb.save(filename)
 
 	def log_to_file(self, message, reply):
-		current_datetime = str(datetime.datetime.now().strftime("%Y-%m-%d.%H-%M-%S.%f"))
-
-		filename = (self.output_path + '/') if len(self.output_path) > 0 else ""
-		filename += current_datetime + '.txt'
+		filename = self.generate_output_path('txt')
 
 		with open(filename, 'w') as f:
 			f.write(message + '\n\n' + reply)
