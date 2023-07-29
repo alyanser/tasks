@@ -12,16 +12,18 @@ from PyQt6.QtWidgets import(
 	QVBoxLayout,
 	QLineEdit,
 	QPlainTextEdit,
-	QHeaderView
+	QHeaderView,
 )
 
 from PyQt6.QtGui import(
-	QAction
+	QAction,
+	QDesktopServices,
 )
 
 from PyQt6.QtCore import(
 	Qt,
-	QSettings
+	QSettings,
+	QUrl
 )
 
 import openai
@@ -80,7 +82,7 @@ class Main_window(QMainWindow):
 		self.output_path = settings.value("output_path")
 
 		if not self.output_path:
-			self.output_path = ""
+			self.output_path = "."
 
 		if not prompts:
 			prompts = []
@@ -201,14 +203,24 @@ class Main_window(QMainWindow):
 				self.log_to_file(message, reply)
 				replies.append((prompt_text_label.text(), reply))
 			except Exception as e:
-				self.display_error_box(str(e))
+				return self.display_error_box(str(e))
 
-		self.log_to_excel(replies)
-	
+		excel_filename = self.log_to_excel(replies)
+
+		msg_box = QMessageBox(self)
+		msg_box.setText(f"All prompts ran successfully. Output saved to: {self.output_path}\nWould you like to open the excel file containing final output?")
+		msg_box.setIcon(QMessageBox.Icon.Information)
+
+		msg_box.addButton(QMessageBox.StandardButton.Yes)
+		msg_box.addButton(QMessageBox.StandardButton.No)
+		msg_box.setDefaultButton(QMessageBox.StandardButton.Yes)
+
+		if msg_box.exec() == QMessageBox.StandardButton.Yes:
+			QDesktopServices.openUrl(QUrl.fromLocalFile(excel_filename))
+
 	def generate_output_path(self, extension):
 		current_datetime = str(datetime.datetime.now().strftime("%Y-%m-%d.%H-%M-%S.%f"))
-		filename = (self.output_path + '/') if len(self.output_path) > 0 else ""
-		filename += current_datetime + '.' + extension
+		filename = self.output_path + '/' + current_datetime + '.' + extension
 		return filename
 
 	def log_to_excel(self, messages):
@@ -220,6 +232,7 @@ class Main_window(QMainWindow):
 
 		filename = self.generate_output_path('xlsx')
 		wb.save(filename)
+		return filename
 
 	def log_to_file(self, message, reply):
 		filename = self.generate_output_path('txt')
