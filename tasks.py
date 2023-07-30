@@ -200,6 +200,8 @@ class Main_window(QMainWindow):
 					messages=[{"role": "user", "content": message}],
 				)
 
+				reply = reply["choices"][0]["message"]["content"]
+
 				self.log_to_file(message, reply)
 				replies.append((prompt_text_label.text(), reply))
 			except Exception as e:
