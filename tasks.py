@@ -1,8 +1,10 @@
 from PyQt6.QtWidgets import(
 	QApplication,
 	QMainWindow,
+	QStatusBar,
 	QCheckBox,
 	QTableWidget,
+	QProgressBar,
 	QMessageBox,
 	QFileDialog,
 	QInputDialog,
@@ -39,6 +41,14 @@ class Main_window(QMainWindow):
 
 		self.toolbar = QToolBar(self)
 		self.addToolBar(self.toolbar)
+
+		self.progress_bar = QProgressBar(self)
+		self.progress_bar.setTextVisible(True)
+		self.progress_bar.setRange(0, 0)
+		self.progress_bar.setValue(0)
+
+		self.setStatusBar(QStatusBar(self))
+		self.statusBar().addPermanentWidget(self.progress_bar, 1)
 
 		self.central_widget = QWidget(self)
 		self.setCentralWidget(self.central_widget)
@@ -191,7 +201,10 @@ class Main_window(QMainWindow):
 
 		replies = []
 
-		for prompt_text_label, _, _ in self.chained_prompts:
+		self.progress_bar.setRange(0, len(self.chained_prompts))
+		self.progress_bar.setValue(0)
+
+		for prompt_text_label, _, i in self.chained_prompts:
 			message = prompt_text_label.text() + '\n\n' + (replies[-1][1] if len(replies) > 0 else input_text)
 
 			try:
@@ -204,7 +217,10 @@ class Main_window(QMainWindow):
 
 				self.log_to_file(message, reply)
 				replies.append((prompt_text_label.text(), reply))
+				self.progress_bar.setValue(i + 1)
 			except Exception as e:
+				self.progress_bar.setValue(0)
+				self.progress_bar.setRange(0, 0)
 				return self.display_error_box(str(e))
 
 		excel_filename = self.log_to_excel(replies)
@@ -219,6 +235,9 @@ class Main_window(QMainWindow):
 
 		if msg_box.exec() == QMessageBox.StandardButton.Yes:
 			QDesktopServices.openUrl(QUrl.fromLocalFile(excel_filename))
+
+		self.progress_bar.setValue(0)
+		self.progress_bar.setRange(0, 0)
 
 	def generate_output_path(self, extension):
 		current_datetime = str(datetime.datetime.now().strftime("%Y-%m-%d.%H-%M-%S.%f"))
